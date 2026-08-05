@@ -26,6 +26,14 @@ function Navbar({ isAdmin, onLogout }) {
                         Admin
                     </Link>
                 )}
+                {!isAdmin && (
+                    <Link
+                        to="/contact"
+                        className="text-purple-200 hover:text-white transition-colors font-medium"
+                    >
+                        Contact
+                    </Link>
+                )}
 
                 <button
                     onClick={onLogout}
