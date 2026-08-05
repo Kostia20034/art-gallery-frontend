@@ -147,6 +147,7 @@ function AdminDashboard({ token }) {
                 );
                 showToast("Artwork updated successfully!");
             } else {
+                console.log("token:", token)
                 await fetch(
                     `${API_URL}/api/v1/artworks`,
                     {
