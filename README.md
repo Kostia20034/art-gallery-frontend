@@ -1,96 +1,102 @@
-# 🛍️ Product Store — Frontend
+# Art Gallery — Frontend
 
-A React frontend for the Product API. Full stack product management app with JWT authentication, real-time CRUD operations, and pagination.
+React frontend for the Art Gallery web application. Browse artworks, view details, submit contact messages, and manage the gallery through an admin dashboard.
 
-## 🌐 Live Demo
-**https://product-frontend-vm4l.vercel.app**
+**Live site:** _add your Vercel URL here once deployed_
+**Backend API:** https://art-gallery-api-production-683f.up.railway.app
 
-## 🔗 Backend API
-**https://product-api-production-949c.up.railway.app**
+## Features
 
----
+- 🖼️ Public gallery with paginated artwork browsing
+- 🔍 Individual artwork detail pages
+- 🔐 Authentication (login/register) for admin access
+- 🛠️ Admin dashboard to create, edit, and delete artworks
+- 📬 Contact form
+- 📱 Responsive design with Tailwind CSS
 
-## 🚀 Tech Stack
+## Tech Stack
 
-| Technology | Purpose |
-|---|---|
-| React 19 + Vite | Frontend framework |
-| Tailwind CSS | Styling |
-| JavaScript ES6+ | Language |
-| Docker + Nginx | Containerization |
-| Vercel | Deployment |
+- **React** (Vite)
+- React Router
+- Tailwind CSS
+- JWT-based auth (talks to the Spring Boot backend)
 
----
+## Getting Started
 
-## ✨ Features
+### Prerequisites
 
-```
-✅ Login / Register with JWT authentication
-✅ Token stored in localStorage (persists on refresh)
-✅ Create, Edit, Delete products (protected)
-✅ Browse and Search products (public)
-✅ Pagination with Previous/Next navigation
-✅ Loading states
-✅ Error handling
-✅ Responsive design with Tailwind CSS
-✅ Connected to real Spring Boot REST API + PostgreSQL
-```
+- Node.js 18+
+- npm
 
----
+### Setup
 
-## 🐳 Run with Docker
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/Kostia20034/art-gallery-frontend.git
+   cd art-gallery-frontend/product-frontend
+   ```
 
-Make sure Docker Desktop is running and backend is started first:
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Configure environment variables — create a `.env.local` file:
+   ```
+   VITE_API_URL=https://art-gallery-api-production-683f.up.railway.app
+   ```
+   (Omit this to fall back to the live backend URL configured in `src/config.js`.)
+
+4. Run the dev server:
+   ```bash
+   npm run dev
+   ```
+
+   The app will be available at `http://localhost:5173`.
+
+### Build for production
 
 ```bash
-# Start everything (frontend + backend + database)
-cd Product-api
-docker-compose up
+npm run build
 ```
 
-Frontend runs at `http://localhost:3000` ✅
+Output is generated in the `dist/` folder.
 
----
-
-## ⚙️ Run Locally
-
-**Prerequisites:** Node.js 18+
-
-```bash
-git clone https://github.com/Kostia20034/product-frontend.git
-cd product-frontend
-npm install
-npm run dev
-```
-
-App runs at `http://localhost:5173`
-
-Make sure backend is running at `http://localhost:8080`
-
----
-
-## 🏗️ Project Structure
+## Project Structure
 
 ```
-src/
-├── App.jsx          # Main component — products page
-├── Auth.jsx         # Login/Register component
-├── ProductCard.jsx  # Individual product card with edit/delete
-├── config.js        # API URL configuration
-└── main.jsx         # Entry point
+product-frontend/
+├── src/
+│   ├── App.jsx              # Main app + routing
+│   ├── Auth.jsx              # Login / register page
+│   ├── Navbar.jsx            # Navigation bar
+│   ├── config.js             # API base URL config
+│   └── pages/
+│       ├── Gallery.jsx          # Public artwork gallery
+│       ├── ArtworkDetail.jsx    # Single artwork view
+│       ├── AdminDashboard.jsx   # Admin CRUD interface
+│       └── Contact.jsx          # Contact form
 ```
 
----
+## Pages
 
-## 🔗 Backend Repository
-[Product-api](https://github.com/Kostia20034/Product-api)
+| Route | Description | Access |
+|---|---|---|
+| `/` | Artwork gallery | Public |
+| `/artwork/:id` | Artwork detail view | Public |
+| `/contact` | Contact form | Public |
+| `/login` | Login / register | Public |
+| `/admin` | Admin dashboard (manage artworks) | Admin only |
 
----
+## Deployment
 
-## 🔮 Roadmap
+Deployed on [Vercel](https://vercel.com), connected directly to this GitHub repository.
 
-- [ ] React Router (multiple pages)
-- [ ] Auto logout on token expiry
-- [ ] Better error messages
-- [ ] Loading spinners per action
-- [ ] Product categories
+- **Root directory:** `product-frontend`
+- **Framework preset:** Vite
+- **Build command:** `npm run build`
+- **Output directory:** `dist`
+
+## License
+
+This project is for portfolio/educational purposes.
