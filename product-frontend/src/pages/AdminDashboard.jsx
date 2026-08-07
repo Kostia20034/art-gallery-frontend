@@ -11,6 +11,13 @@ function AdminDashboard({ token }) {
     const [loadingMessages, setLoadingMessages] = useState(false);
 
     // =========================
+    // UPLOAD STATE
+    // =========================
+    const [uploading, setUploading] = useState(false);
+    const [uploadError, setUploadError] = useState("");
+    const [saving, setSaving] = useState(false);
+
+    // =========================
     // DATA STATE
     // =========================
     const [artworks, setArtworks] = useState([]);
@@ -51,20 +58,20 @@ function AdminDashboard({ token }) {
     const [featured, setFeatured] = useState(false);
 
     const fetchMessages = async () => {
-    try {
-        setLoadingMessages(true);
-        const response = await fetch(`${API_URL}/api/v1/contact`, {
-            headers: requestHeaders
-        });
-        const data = await response.json();
-        setMessages(data || []);
-    } catch (error) {
-        console.error("Error fetching messages:", error);
-        showToast("Failed to load messages", "error");
-    } finally {
-        setLoadingMessages(false);
-    }
-};
+        try {
+            setLoadingMessages(true);
+            const response = await fetch(`${API_URL}/api/v1/contact`, {
+                headers: requestHeaders
+            });
+            const data = await response.json();
+            setMessages(data || []);
+        } catch (error) {
+            console.error("Error fetching messages:", error);
+            showToast("Failed to load messages", "error");
+        } finally {
+            setLoadingMessages(false);
+        }
+    };
 
     const openMessages = () => {
         setShowMessages(true);
@@ -117,6 +124,69 @@ function AdminDashboard({ token }) {
         setFeatured(artwork.featured);
         setShowEditor(true);
     };
+    // =========================
+    // UPLOAD IMAGE OPERATION
+    // =========================
+
+    const handleFileUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+        if (!allowedTypes.includes(file.type)) {
+            const message = "Only image files are allowed.";
+            setUploadError(message);
+            showToast(message, "error");
+            return;
+        }
+
+        if (file.size > 10 * 1024 * 1024) {
+            const message = "Image must be 10MB or smaller.";
+            setUploadError(message);
+            showToast(message, "error");
+            return;
+        }
+
+        setUploading(true);
+        setUploadError("");
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const controller = new AbortController();
+        const timeoutId = window.setTimeout(() => controller.abort(), 20000);
+
+        try {
+            const response = await fetch(`${API_URL}/api/v1/images/upload`, {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${token}` // no Content-Type here, browser sets it for FormData
+                },
+                body: formData,
+                signal: controller.signal
+            });
+
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                const message = data.error || data.message || "Upload failed";
+                setUploadError(message);
+                throw new Error(message);
+            }
+
+            setImageUrl(data.url);
+            setUploadError("");
+            showToast("Image uploaded successfully!");
+        } catch (error) {
+            console.error("Error uploading image:", error);
+            const message = error.name === "AbortError"
+                ? "Upload timed out. Please try again."
+                : error.message || "Failed to upload image";
+            setUploadError(message);
+            showToast(message, "error");
+        } finally {
+            window.clearTimeout(timeoutId);
+            setUploading(false);
+        }
+    };
 
     // =========================
     // SAVE OPERATION (POST / PUT)
@@ -135,6 +205,8 @@ function AdminDashboard({ token }) {
             featured
         };
 
+        setSaving(true);
+
         try {
             if (editingArtwork) {
                 await fetch(
@@ -147,7 +219,6 @@ function AdminDashboard({ token }) {
                 );
                 showToast("Artwork updated successfully!");
             } else {
-                console.log("token:", token)
                 await fetch(
                     `${API_URL}/api/v1/artworks`,
                     {
@@ -165,6 +236,8 @@ function AdminDashboard({ token }) {
         } catch (error) {
             console.error("Error saving artwork:", error);
             showToast("Failed to save artwork", "error");
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -273,6 +346,21 @@ function AdminDashboard({ token }) {
                                 </div>
 
                                 <div className="md:col-span-2">
+                                    <label className="block text-xs font-bold text-purple-300 uppercase tracking-wider mb-1">
+                                        Upload Image
+                                    </label>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleFileUpload}
+                                        disabled={uploading}
+                                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2 text-white text-sm file:mr-4 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:bg-purple-600 file:text-white file:font-semibold file:cursor-pointer hover:file:bg-purple-500"
+                                    />
+                                    {uploading && <p className="text-xs text-purple-400 mt-1">Uploading...</p>}
+                                    {uploadError && <p className="text-xs text-rose-400 mt-1">{uploadError}</p>}
+                                </div>
+
+                                <div className="md:col-span-2">
                                     <label className="block text-xs font-bold text-purple-300 uppercase tracking-wider mb-1">Image URL *</label>
                                     <input
                                         type="text"
@@ -322,9 +410,10 @@ function AdminDashboard({ token }) {
                                 </button>
                                 <button
                                     onClick={saveArtwork}
-                                    className="cursor-pointer bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white px-6 py-2.5 rounded-xl font-bold transition shadow-md shadow-purple-950"
+                                    disabled={saving}
+                                    className="cursor-pointer bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white px-6 py-2.5 rounded-xl font-bold transition shadow-md shadow-purple-950 disabled:opacity-60 disabled:cursor-not-allowed"
                                 >
-                                    Save Changes
+                                    {saving ? "Saving..." : "Save Changes"}
                                 </button>
                             </div>
 
@@ -332,58 +421,58 @@ function AdminDashboard({ token }) {
                     </div>
                 )}
                 {showMessages && (
-    <div className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-        <div className="bg-slate-900 border border-purple-500/30 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl shadow-purple-950/50">
+                    <div className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+                        <div className="bg-slate-900 border border-purple-500/30 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl shadow-purple-950/50">
 
-            <div className="bg-gradient-to-r from-blue-900 via-purple-900 to-pink-900 px-6 py-4 border-b border-purple-500/20 flex justify-between items-center">
-                <h3 className="text-xl font-bold text-white">✉ Contact Messages</h3>
-                <button
-                    onClick={() => setShowMessages(false)}
-                    className="cursor-pointer text-slate-300 hover:text-white text-2xl leading-none"
-                >
-                    &times;
-                </button>
-            </div>
+                            <div className="bg-gradient-to-r from-blue-900 via-purple-900 to-pink-900 px-6 py-4 border-b border-purple-500/20 flex justify-between items-center">
+                                <h3 className="text-xl font-bold text-white">✉ Contact Messages</h3>
+                                <button
+                                    onClick={() => setShowMessages(false)}
+                                    className="cursor-pointer text-slate-300 hover:text-white text-2xl leading-none"
+                                >
+                                    &times;
+                                </button>
+                            </div>
 
-            <div className="p-6 max-h-[70vh] overflow-y-auto space-y-4">
-                {loadingMessages ? (
-                    <div className="flex flex-col items-center justify-center py-12">
-                        <div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mb-3"></div>
-                        <p className="text-slate-400 text-sm">Loading messages...</p>
-                    </div>
-                ) : messages.length === 0 ? (
-                    <p className="text-center text-slate-500 text-sm py-8">No messages yet.</p>
-                ) : (
-                    messages.map((msg, idx) => (
-                        <div key={idx} className="bg-slate-950 border border-slate-800 rounded-xl p-4">
-                            <div className="flex justify-between items-start mb-2">
-                                <div>
-                                    <p className="font-semibold text-slate-200">{msg.name}</p>
-                                    <p className="text-xs text-indigo-300">{msg.email}</p>
-                                </div>
-                                {msg.createdAt && (
-                                    <span className="text-[11px] text-slate-500 whitespace-nowrap">
-                                        {new Date(msg.createdAt).toLocaleString()}
-                                    </span>
+                            <div className="p-6 max-h-[70vh] overflow-y-auto space-y-4">
+                                {loadingMessages ? (
+                                    <div className="flex flex-col items-center justify-center py-12">
+                                        <div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+                                        <p className="text-slate-400 text-sm">Loading messages...</p>
+                                    </div>
+                                ) : messages.length === 0 ? (
+                                    <p className="text-center text-slate-500 text-sm py-8">No messages yet.</p>
+                                ) : (
+                                    messages.map((msg, idx) => (
+                                        <div key={idx} className="bg-slate-950 border border-slate-800 rounded-xl p-4">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div>
+                                                    <p className="font-semibold text-slate-200">{msg.name}</p>
+                                                    <p className="text-xs text-indigo-300">{msg.email}</p>
+                                                </div>
+                                                {msg.createdAt && (
+                                                    <span className="text-[11px] text-slate-500 whitespace-nowrap">
+                                                        {new Date(msg.createdAt).toLocaleString()}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <p className="text-sm text-slate-300 whitespace-pre-wrap">{msg.message}</p>
+                                        </div>
+                                    ))
                                 )}
                             </div>
-                            <p className="text-sm text-slate-300 whitespace-pre-wrap">{msg.message}</p>
-                        </div>
-                    ))
-                )}
-            </div>
 
-            <div className="bg-slate-950 border-t border-slate-800 px-6 py-4 flex justify-end">
-                <button
-                    onClick={() => setShowMessages(false)}
-                    className="cursor-pointer bg-slate-800 hover:bg-slate-700 text-slate-300 px-5 py-2.5 rounded-xl font-medium transition"
-                >
-                    Close
-                </button>
-            </div>
-        </div>
-    </div>
-)}
+                            <div className="bg-slate-950 border-t border-slate-800 px-6 py-4 flex justify-end">
+                                <button
+                                    onClick={() => setShowMessages(false)}
+                                    className="cursor-pointer bg-slate-800 hover:bg-slate-700 text-slate-300 px-5 py-2.5 rounded-xl font-medium transition"
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* =========================
                     THE ARTWORKS DATA TABLE
